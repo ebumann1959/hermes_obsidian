@@ -91,19 +91,15 @@ Fixed beat timing issue.
 A ChromaDB index of all SESSION_LOG entries is maintained at `/mnt/nvme/chromadb/`.
 Use the `search_vault` tool to retrieve relevant past context by topic — not just recency.
 
-**When to use it:**
-- At session start: call `search_vault` with the current topic before diving in
-- When the user references past work: "like we did before", "continue that", "same approach as last time"
-- When you need to check if a decision was already made
-- When you need a path, port, or convention you don't have in current context
+**Searching the vault:**
+- At session start: `grep` SESSION_LOG.md directly for topics relevant to this session
+- When the user references past work: `grep -i "<keyword>" /mnt/nvme/obsidian-vault/SESSION_LOG.md`
+- When you need to check if a decision was already made or a path/convention
+- ChromaDB index at `/mnt/nvme/chromadb/` was planned but not implemented — do not attempt to use `search_vault` as a tool; it does not exist
 
-**Examples:**
-```
-search_vault("NavMesh setup and pathfinding decisions")
-search_vault("show_runner Flask port and endpoints")
-search_vault("beat timing and dialogue animation")
-search_vault("what we decided about the Obsidian vault structure")
-```
+**Pre-compaction save (RESOLVED):**
+The session watchdog (`session-watchdog.service`) now captures full session snapshots before compaction. It watches `~/.hermes/sessions/` via inotify, detects compaction events (file shrinks + COMPACTION marker), and archives the pre-compaction JSON to:
+- Local: `~/.hermes/session_snapshots/`
+- Vault: `/mnt/nvme/obsidian-vault/sessions/`
 
-The tool returns the most semantically similar past entries with similarity scores.
-Results are truncated to ~800 chars per entry — if you need the full entry, grep SESSION_LOG.md directly.
+Also does a periodic snapshot every 3 minutes as a backstop. Use the `session-snapshot-recovery` skill to reconstruct context after compaction. Index: `~/.hermes/session_snapshots/snapshot_index.json`.
