@@ -324,3 +324,28 @@ I need to grab the current timestamp from the system for the vault's local time.
 - `pi-system-operations/SKILL.md`, documents (`hermes_pi_chat_ref.txt`, `chatbot_boot.txt`), e-suite reports (`REPORT.md` x2)
 
 **Why:** The
+
+---
+
+## 2026-05-07 19:45 — Session Watchdog v2: token-based, subprocess model
+
+**What:** Rewrote session watchdog from scratch. Old watchdog ran as systemd service with inotify-based compaction detection. New watchdog:
+- Spawns as subprocess of Hermes at session start
+- Token-based trigger: estimates tokens as `chars / 4`, snapshots at >80k (compaction ~100k)
+- Writes PRE-COMPACTION marker into session JSON + pointer file at `~/.hermes/last_session.json`
+- No systemd, no cron, no idle daemon — watchdog dies when Hermes session ends
+- If Hermes restarts mid-session (new session ID detected), watchdog exits gracefully
+
+**Recovery flow:** Next session start → reads `last_session.json` → checks previous session file for COMPACTION marker → restores from snapshot only if previous session was interrupted.
+
+**Key verified fact:** Session ID is stable across compaction — same ID before and after. Recovery is deterministic.
+
+**Session journal skill updated:** Start-of-session ritual now has 4 steps: (1) launch watchdog subprocess, (2) check recovery, (3) sync vault, (4) read SESSION_LOG/PROJECT_STATE.
+
+**Snapshot-recovery skill updated:** Documents the new recovery logic.
+
+**Old watchdog:** Systemd service stopped and disabled.
+
+**Old snapshots:** Malformed naming (`session_session_` prefix) — all deleted.
+
+**Pending:** PC sync next time it starts a session.
