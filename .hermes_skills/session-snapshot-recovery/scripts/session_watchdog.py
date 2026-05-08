@@ -32,6 +32,8 @@ POLL_INTERVAL   = 180   # seconds between periodic snapshots
 COMPACTION_GRACE = 5    # seconds: if file shrinks within this window → compaction
 MIN_SIZE_DROP   = 0.5   # fraction: file must shrink by this much to count as compaction
 MAX_SNAPSHOTS   = 50    # keep this many local snapshots (oldest purged)
+IDLE_TIMEOUT    = 600   # seconds of session inactivity before self-destruct (10 min)
+SESSION_ACTIVITY_WINDOW = 60  # seconds: a session file modified within this many seconds = active
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def log(msg):
@@ -66,6 +68,14 @@ def current_session_file():
     if not files:
         return None
     return max(files, key=lambda f: f.stat().st_mtime)
+
+def is_session_active(threshold=SESSION_ACTIVITY_WINDOW):
+    """Return True if any session file was modified within the threshold seconds."""
+    now = time.time()
+    for f in SESSIONS_DIR.glob("session_*.json"):
+        if now - f.stat().st_mtime < threshold:
+            return True
+    return False
 
 def save_snapshot(src_path, label=""):
     """Copy session file to local snapshot dir and vault."""
@@ -237,11 +247,26 @@ def main():
     log(f"Watching {SESSIONS_DIR} — snapshots every {POLL_INTERVAL}s, compaction detection active")
 
     try:
+        idle_since = None
         while True:
             time.sleep(60)
+            active = is_session_active()
+            if active:
+                idle_since = None
+            else:
+                if idle_since is None:
+                    idle_since = time.time()
+                    log("Session inactive — starting idle timer")
+                elapsed = time.time() - idle_since
+                log(f"Idle {int(elapsed)}s / {IDLE_TIMEOUT}s")
+                if elapsed >= IDLE_TIMEOUT:
+                    log(f"IDLE TIMEOUT — self-destructing")
+                    inotify.stop()
+                    periodic.stop()
+                    return
             # Heartbeat + prune old vault snapshots
             idx = load_index()
-            log(f"Running: {len(idx['snapshots'])} snapshots, last_md5={idx.get('last_md5', 'N/A')[:8] if idx.get('last_md5') else 'N/A'}")
+            log(f"Heartbeat: {len(idx['snapshots'])} snapshots")
     except KeyboardInterrupt:
         log("Shutting down...")
         inotify.stop()
