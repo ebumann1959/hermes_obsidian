@@ -97,9 +97,10 @@ Use the `search_vault` tool to retrieve relevant past context by topic — not j
 - When you need to check if a decision was already made or a path/convention
 - ChromaDB index at `/mnt/nvme/chromadb/` was planned but not implemented — do not attempt to use `search_vault` as a tool; it does not exist
 
-**Pre-compaction save (RESOLVED):**
-The session watchdog (`session-watchdog.service`) now captures full session snapshots before compaction. It watches `~/.hermes/sessions/` via inotify, detects compaction events (file shrinks + COMPACTION marker), and archives the pre-compaction JSON to:
-- Local: `~/.hermes/session_snapshots/`
-- Vault: `/mnt/nvme/obsidian-vault/sessions/`
+**Pre-compaction save (RESOLVED — two-layer system):**
 
-Also does a periodic snapshot every 3 minutes as a backstop. Use the `session-snapshot-recovery` skill to reconstruct context after compaction. Index: `~/.hermes/session_snapshots/snapshot_index.json`.
+1. **Watchdog daemon** (`session-watchdog.service`) — runs during active sessions, uses inotify to capture compaction the instant it happens. Self-destructs after 10 min idle.
+
+2. **Cron fallback** — runs every 3 minutes (`*/3 * * * *`), checks for new compaction markers in sessions modified in the last 30 min, catches compactions that fired while watchdog was idle.
+
+Archive location: `~/.hermes/session_snapshots/` (indexed, 50 max) + `/mnt/nvme/obsidian-vault/sessions/` (mirror). Use the `session-snapshot-recovery` skill to reconstruct context after compaction. Index: `~/.hermes/session_snapshots/snapshot_index.json`.
