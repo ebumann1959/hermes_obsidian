@@ -1,0 +1,44 @@
+#!/bin/bash
+# keep-awake — inhibit KDE PowerDevil sleep, auto-cleanup on exit
+# Part of: system/desktop-power-management skill
+# Usage: keep-awake {start|stop|status}
+
+PIDFILE="/tmp/keep-awake-$USER.pid"
+
+case "$1" in
+  start)
+    if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+      echo "Already running (PID $(cat "$PIDFILE"))"
+    else
+      kde-inhibit --power -- bash -c 'while true; do sleep 30; done' &
+      echo $! > "$PIDFILE"
+      echo "Started (PID $!)"
+    fi
+    ;;
+  stop)
+    if [ -f "$PIDFILE" ]; then
+      PID=$(cat "$PIDFILE")
+      if kill -0 "$PID" 2>/dev/null; then
+        kill "$PID"
+        echo "Stopped (was PID $PID)"
+      else
+        echo "Not running (stale pidfile)"
+      fi
+      rm -f "$PIDFILE"
+    else
+      echo "Not running"
+    fi
+    ;;
+  status)
+    if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+      echo "Running (PID $(cat "$PIDFILE"))"
+    else
+      echo "Not running"
+      [ -f "$PIDFILE" ] && rm -f "$PIDFILE"
+    fi
+    ;;
+  *)
+    echo "Usage: keep-awake {start|stop|status}"
+    exit 1
+    ;;
+esac
