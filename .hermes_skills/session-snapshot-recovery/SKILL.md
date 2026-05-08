@@ -5,11 +5,22 @@ description: Recover full context from pre-compaction session snapshots stored i
 
 # Session Snapshot Recovery
 
-Snapshots of session context (full JSON) are captured by the session watchdog before every compaction and stored at:
-- Local: `~/.hermes/session_snapshots/`
-- Vault: `/mnt/nvme/obsidian-vault/sessions/`
+Two-layer capture system ensures no compaction is missed, even during long idle periods:
 
-The watchdog also maintains `~/.hermes/session_snapshots/snapshot_index.json` — a list of all captured snapshots with timestamps and MD5 hashes.
+**Layer 1 — Watchdog daemon** (`session-watchdog.service`):
+- Runs during active sessions, uses inotify to detect compaction the instant it happens
+- Captures pre-compaction snapshot to `~/.hermes/session_snapshots/` + vault
+- Self-destructs after 10 min idle (systemd auto-restarts on next session activity)
+
+**Layer 2 — Cron fallback** (`session_snapshot_cron.py`, `*/3 * * * *`):
+- Runs every 3 minutes, even when no session is active
+- Scans sessions modified in last 30 min for new compaction markers
+- Catches compactions that fired while watchdog was idle
+- Prevents context loss from idle-time compactions
+
+**Archive locations:**
+- Local: `~/.hermes/session_snapshots/` (indexed, 50 max retained)
+- Vault mirror: `/mnt/nvme/obsidian-vault/sessions/` (non-git, Pi-only)
 
 ## When to use
 
@@ -78,6 +89,25 @@ After compaction, you lose the raw conversation history. What you can recover fr
 3. Extract the key context that was lost — decisions made, files being edited, etc.
 4. Write a detailed entry to SESSION_LOG capturing what was lost and what needs to continue
 5. Inject key facts into your response to continue the session coherently
+
+## Implementation
+
+The watchdog is implemented as two files:
+- `~/.hermes/scripts/session_watchdog.py` — the Python watchdog (also in vault at `.hermes_skills/session-snapshot-recovery/scripts/session_watchdog.py`)
+- `~/.config/systemd/user/session-watchdog.service` — systemd unit (also in vault)
+
+**Install on a new machine:**
+```bash
+cp .hermes_skills/session-snapshot-recovery/scripts/session_watchdog.py ~/.hermes/scripts/
+cp .hermes_skills/session-snapshot-recovery/scripts/session-watchdog.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now session-watchdog
+```
+
+**Pitfalls discovered during build:**
+- systemd `ExecStart` needs the **absolute path** to python3 — `python3` alone won't resolve. Use `/usr/bin/python3`.
+- `inotifywait` can emit events with no filename (e.g. `ISDIR` or overflow events). The parse loop must guard against `split()` returning fewer than 2 parts.
+- The vault path in the watchdog script was `Path.home() / "mnt" / "nvme" / ...` which resolves to `$HOME/mnt/nvme/...` — wrong. The actual vault is at `/mnt/nvme/obsidian-vault/`, not `$HOME/mnt/...`. Hardcode `/mnt/nvme/obsidian-vault/` as an absolute path.
 
 ## Limitations
 
