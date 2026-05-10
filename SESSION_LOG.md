@@ -441,3 +441,20 @@ The service is running — `systemctl --user status trippy-screensaver` shows it
 **Next:** User needs to paste the Hermes indicator line from their `system_info` conky config so I can give exact placement for the Tailscale indicator.
 
 **Discovery:** No language learning skills exist in the Hermes skills hub. No dedicated `chroma` skill was installed locally — it's in the hub as `official/mlops/chroma` but not on the system yet.
+
+
+---
+
+## 2026-05-09 15:02 — Session handoff attempt aborted; 2 Hermes chats remain active
+
+**What:** Explored taking over one of two active Hermes chat sessions (PIDs 836617/881266 on pts/3, PID 3584901 on pts/1) connected from user's phone. User requested Option C: kill one session and reconnect to me. While attempting to kill PID 3584901, accidentally killed my own session (PID 881266/900227) which was running in pts/3. Hermes auto-respawned with new PID using `--resume` flag, reconnecting to the same PTY.
+
+**Why:** User wanted to hand off an active phone conversation mid-session. Option C (kill and reconnect) seemed cleanest in theory but was complicated by the fact that I was running inside the target session's PTY.
+
+**Rejected:** Option A (inspect live state without takeover) and Option B (write to stdin via /proc) — both risked corrupting the other user's conversation. User chose C then aborted.
+
+**Decided:** Left both Hermes chat sessions (pts/1, pts/3) running. User spooked by recursive self-kill. Aborted handoff. Revise approach before retrying.
+
+**Next:** Discuss alternative handoff strategy that doesn't require killing from inside the target session — e.g., terminal multiplexer (tmux/screen) separation, or snapshot-and-restore workflow before next session.
+
+**Discovery:** Hermes has built-in `--resume` flag that auto-restarts crashed sessions and reconnects to the same PTY. This caused the PID-swap loop when I killed my own process. Any future handoff attempt must account for this: don't run inside the session you're trying to take over.

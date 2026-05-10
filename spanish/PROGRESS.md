@@ -15,12 +15,11 @@ Primary use cases: live conversation, festivals, group banter.
 ## Key Focus Areas (priority order)
 1. **Listening speed** — native speakers talk fast, need to train ear
 2. **Slang & informal register** — Mexican Spanish is very different from textbook
-3. **Everyday vocab** — gaps are everywhere
-4. **Conjugations** — reactive knowledge (knows the rules but doesn't access them fast)
+## Self-Assessment
+Session 2 (2025-05-10): Can write basic sentences with correct word order. Accents are the main blocker — they affect meaning and are non-negotiable in Spanish. Gender agreement needs active drilling. Listening comprehension not yet tested.
 
 ## What's Working
-- Interest inventory established (EDM, festivals, kids, electrician friend, compounding pharmacy analytics)
+- Sentence structure solid
+- Good natural ear for what sounds colloquial
 - Vault learning system set up (2025-05-09)
-
-## Self-Assessment
-Will update after first few sessions.
+- Interest inventory established (EDM, festivals, kids, electrician friend, compounding pharmacy analytics)
