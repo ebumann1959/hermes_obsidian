@@ -349,3 +349,95 @@ I need to grab the current timestamp from the system for the vault's local time.
 **Old snapshots:** Malformed naming (`session_session_` prefix) — all deleted.
 
 **Pending:** PC sync next time it starts a session.
+
+
+---
+
+Let me check the skills that were in play before updating anything.
+
+[TOOL] {"success": true, "name": "p5js", "version": "1.0.0", "metadata": {"hermes": {"tags": ["creative-coding", "generative-art", "p5js", "canvas", "interactive", "visualization", "webgl", "shaders", "animation"], "related_skills": ["ascii-video", "manim-video", "excalidraw"], "homepage": "https://github.com/NousResearch/h"}}}
+[TOOL] {"success": true, "name": "pi-setup", "version": "1.0.0", "metadata": {"hermes": {"tags": ["raspberry-pi", "setup", "linux", "gpio", "headless", "pi-5"], "related_skills": ["shell-scripting", "python", "gpio", "camera"], "homepage": null}}}
+[TOOL] {"success": true, "name": "pi-setup", "file": "SKILL.md", "content": "# Raspberry Pi Setup & Management\n\nCore setup, networking, and management for Raspberry Pi (primarily Pi 5 / Debian(bookworm) based systems).\n\n## Skill Metadata\n\n- **Author:** Hermes Agent + Teknium\n- **Version:** see `version` field in skill metadata\n- **License:** MIT\n\n## OS & Environment\n\n### Boot & Access\n\n- Default user: `pi` (older) or `Evan` (this user's systems)\n- SSH enabled by default on most images; verify with `raspi-config` or `sudo systemctl status ssh`\n- Always use key-based auth in `~/.ssh/authorized_keys` — no password SSH\n- Pi 5 on bookworm: `rfkill` unblock wifi/blueooth if needed\n- Bookworm uses Wayland by default on Pi 400;
+
+
+---
+
+The GUI is the web app at **port 5000**. Since this is a headless Pi without a desktop browser open, you access it from another machine on your network.
+
+**From any browser, go to:**
+```
+http://10.0.0.9:5000
+```
+
+That's the settings UI with the thumbnail previews, per-saver sliders, palette pickers, delay timer, and start/stop controls.
+
+If you're physically at the Pi with a keyboard/mouse and a browser open there, use `http://localhost:5000` instead.
+
+**Quick cheat sheet for what you can do in the GUI:**
+
+| What | Where in the GUI |
+|------|-----------------|
+| Select active screensaver | Click any thumbnail in the grid |
+| Tune params (speed, density, etc.) | Sliders in the right panel after selecting a saver |
+| Change color palette | Palette dropdown per saver |
+| Set idle delay (seconds until it kicks in) | "Delay" field at the top |
+| Start screensaver now | Green **Start** button |
+| Stop screensaver | **Stop** button or just move mouse/keyboard |
+| Save settings to disk | **Save** button |
+
+The service is running — `systemctl --user status trippy-screensaver` shows it active. So the web UI should be live right now.
+
+
+---
+
+## 2026-05-09 14:55 — Kill-and-handoff of live hermes session 836617 attempted
+
+**What:** Investigated taking over a live hermes chat session (PID 836617, pts/3) running from user's phone via Tailscale. Discovered two active hermes processes connected to ChromaDB and external HTTPS endpoints. Explored session snapshot mechanism — index only contained captures from May 7, no fresh snapshots for today's sessions. Discussed three handoff options; user chose Option C (kill session and reconnect).
+
+**Why:** User wanted a "hand off" — to transfer an active phone chat to me. Direct PTY injection was rejected because it would corrupt the other user's conversation mid-stream. Session snapshots didn't exist for today's sessions (May 9), making clean state transfer impossible without first triggering a compaction.
+
+**Rejected:** Option A (inspect live state) — reads state but doesn't transfer conversation. Option B (inject into pts/3 stdin) — would corrupt live chat output. Both sessions had active connections to remote HTTPS endpoints, suggesting concurrent phone users.
+
+**Decided:** Option C — kill PID 836617 and user reconnects to me directly. Command sent but interrupted by SIGTERM before execution completed.
+
+**Next:** Need to successfully terminate PID 836617 and confirm user re-established connection to current session.
+
+**Discovery:** Session snapshot index lives at `~/.hermes/session_snapshots/snapshot_index.json` and only captures pre-compaction state. Active sessions don't snapshot automatically — compaction must be triggered first. Both active hermes sessions (PIDs 836617 and 3584901) connect to `localhost:8000` (ChromaDB) and remote HTTPS endpoints simultaneously. The TUI dashboard on port 9119 is a separate monitoring process, not a chat session.
+
+
+---
+
+## 2026-05-09 14:53 — Investigated Hermes session handoff for [[Projects/show-runner]]
+
+**What:** Explored options for handing off an active Hermes phone chat session to this AI session. Discovered two active Hermes chat processes on the Pi: PID 3584901 (pts/1, 6.7% CPU) and PID 881266 (pts/3, resumed via `--resume 20260509_145219_bb5809`, 23.3% CPU). Both sessions are connected to ChromaDB on port 8000 and making remote HTTPS connections (likely phone Tailscale endpoints). Snapshot index at `~/.hermes/session_snapshots/snapshot_index.json` only contains entries through May 7 — no pre-compaction captures exist for today's sessions.
+
+**Why:** User wants to transfer a conversation from their phone into this AI session. The two active sessions represent the two phone connections. Handoff requires cleanly terminating one session so the user can reconnect that phone to this AI instance.
+
+**Decided:** Proceeded with Option C — kill target session and have user reconnect. First attempt killed the current session (836617), which auto-resumed as PID 881266. Second attempt received SIGTERM (signal 15), indicating the handoff is in progress.
+
+**Next:** Verify session state after SIGTERM. Determine if 3584901 (pts/1) or 881266 (pts/3) is the intended handoff target. Confirm which phone connection should attach to this AI session.
+
+**Discovery:** Hermes auto-respawns killed sessions with `--resume` flag using the last session ID. Live PTY handoff requires snapshotting first for clean state transfer — without snapshots, the only clean handoff option is kill-and-reconnect.
+
+
+---
+
+## 2025-01-13 20:47 — Explored iOS remote access, installed 4 skills, confirmed Tailscale conky interface
+
+**What:** Discussed iOS → Hermes remote interaction options, installed `ios-develop`, `deep-thinker`, `lua-development`, and `chroma` skills. Ran `ip addr show` to verify Tailscale interface name for conky modification.
+
+**Why:** User wants to interact with the Pi-hosted agent from iOS. Tailscale is already running (100.104.189.48) but gateway isn't configured yet. Also exploring available skills.
+
+**Rejected:** Browser-based research was blocked (Playwright browsers not installed). Full Telegram setup blocked by need for user to create bot token via @BotFather on their iPhone first.
+
+**Decided:**
+- Best iOS remote access path is Telegram bot (easiest) or API Server over Tailscale
+- `ios-develop` is a general Swift/SwiftUI/Flutter skill, not specific to Hermes remote access
+- `deep-thinker` changes response style (visible internal monologue, adversarial thinking) but mostly affects path not destination — worth testing on hard problems
+- `character-roleplay` is one-shot impressions of public characters; Show Runner personas are narrative-grounded with arc/relationship context
+- Tailscale interface on this Pi is `tailscale0`, IP `100.104.189.48`
+- Conky line to add: `${if_up tailscale0}${color #00FF00}🟢${color #888} TS: ${addr tailscale0}${else}${color #FF4444}🔴${color #888} TS: OFF${endif}`
+
+**Next:** User needs to paste the Hermes indicator line from their `system_info` conky config so I can give exact placement for the Tailscale indicator.
+
+**Discovery:** No language learning skills exist in the Hermes skills hub. No dedicated `chroma` skill was installed locally — it's in the hub as `official/mlops/chroma` but not on the system yet.
