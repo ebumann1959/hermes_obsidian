@@ -76,7 +76,7 @@ fi
 # ── 4. Config drift ──────────────────────────────────────────────────────────
 DRIFT=()
 if [ -f "$HERMES_CFG" ]; then
-    grep -q "provider: minimax-coding-plan" "$HERMES_CFG" || DRIFT+=("provider")
+    grep -q "provider: minimax" "$HERMES_CFG" || DRIFT+=("provider")
     grep -q "reasoning_effort: high"        "$HERMES_CFG" || DRIFT+=("reasoning_effort")
     grep -q "on_session_finalize"           "$HERMES_CFG" || DRIFT+=("hook")
 fi
@@ -90,7 +90,7 @@ cfg = sys.argv[1]
 with open(cfg) as f: c = f.read()
 orig = c
 c = re.sub(r"^(model:\n  default: MiniMax-M2\.\d+\n  provider: )minimax$",
-           r"\1minimax-coding-plan", c, count=1, flags=re.MULTILINE)
+           r"\1minimax", c, count=1, flags=re.MULTILINE)
 c = re.sub(r"^  reasoning_effort: medium$", "  reasoning_effort: high",
            c, flags=re.MULTILINE)
 if "on_session_finalize" not in c:
