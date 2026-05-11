@@ -458,3 +458,28 @@ The service is running — `systemctl --user status trippy-screensaver` shows it
 **Next:** Discuss alternative handoff strategy that doesn't require killing from inside the target session — e.g., terminal multiplexer (tmux/screen) separation, or snapshot-and-restore workflow before next session.
 
 **Discovery:** Hermes has built-in `--resume` flag that auto-restarts crashed sessions and reconnects to the same PTY. This caused the PID-swap loop when I killed my own process. Any future handoff attempt must account for this: don't run inside the session you're trying to take over.
+
+
+---
+
+## 2025-05-10 17:30 — First Pedro lesson: vocab, sentences, accent crisis
+
+**What:** First Spanish lesson under the Pedro persona. Covered 15 core words + 3 phrase chunks. Evan wrote 6 sentences live, each corrected. Keyboard accent setup resolved for MX Linux US English.
+
+Words introduced: ¿Qué?, Está, Sí, No, Bien, Mal, Más, Todo, Ahora, Después, Vamos, Está bien, No sé, ¿Y qué?, ¡Órale!
+
+Festival set: Fiesta, Borracho, Banda, Escenario, Multitud, Pérdido, Vámonos, ¡Qué suave!
+
+Phrases: ¡Qué tal!, No hay pedo, ¡No mames!
+
+Sentences written: "Estoy en un festival", "Mi amigo Pedro es chistoso", "¿Qué pasó? Vámonos a la música", "La multitud está borracha", "Estamos en el escenario"
+
+**Why:** Evan asked to begin immediately. First lesson goal: establish vocabulary baseline and assess writing instincts. Sentence writing reveals grammar gaps faster than passive review.
+
+**Rejected:** No rejected options in this session.
+
+**Decided:** Accents are the top priority weakness — will drill every session. Gender agreement needs ongoing reinforcement. Sentence structure is surprisingly solid. Next session: ear training with audio clip + festival vocab round 2.
+
+**Next:** Pull vault next session, read PROGRESS and SESSION_LOG, continue with audio ear training exercise and 15 more festival/EDM words.
+
+**Discovery:** Evan didn't know how to type Spanish accents on MX Linux. Resolved: `setxkbmap -option compose:ralt` in .bashrc. Right Alt + ' + vowel = accented vowel. This is now set up and permanent.
