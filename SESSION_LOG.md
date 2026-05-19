@@ -483,3 +483,77 @@ Sentences written: "Estoy en un festival", "Mi amigo Pedro es chistoso", "¿Qué
 **Next:** Pull vault next session, read PROGRESS and SESSION_LOG, continue with audio ear training exercise and 15 more festival/EDM words.
 
 **Discovery:** Evan didn't know how to type Spanish accents on MX Linux. Resolved: `setxkbmap -option compose:ralt` in .bashrc. Right Alt + ' + vowel = accented vowel. This is now set up and permanent.
+
+
+---
+
+The old `play.py` instance died (that was the pre-fix version), but the new one (`proc_71a1b268730b`) is still up with the binary fix. Let me confirm:
+
+[TOOL] {"output": "LISTEN 0      128                        0.0.0.0:5000       0.0.0.0:*    users:((\"python3\",pid=751483,fd=3))        \n200{\"dialog\":false,\"hp\":null,\"in_battle\":{\"in_battle\":false,\"type\":\"none\"},\"map\":null,\"position\":null,\"status\":\"idle\"}"
+
+[TOOL] {"success": true, "output": "port 5000: OPEN\nFlask app running\n", "tool_calls_made": 0, "duration_seconds": 2.23}
+
+[TOOL] {"success": true, "output": "status: idle\n200", "tool_calls_made": 0, "duration_seconds": 2.23}
+
+App is live and healthy. Here's the session log:
+
+---
+
+## 2026-05-19 01:45 — Built Pokémon stream viewer and agent control app
+
+**What:** Created a browser-based control interface for the [[Projects/pokemon-agent]] at `/home/Evan/pokemon-stream/`. Two services run side-by-side: `stream.py` (port 9989) polls the agent's `/screenshot` endpoint and serves live PNG frames, and `play.py` (Flask, port 5000) is the interactive control panel. The UI shows a live game stream iframe, a real-time state bar (map/position/HP/battle status via SSE), an instruction queue, and a text input to enqueue commands for the agent.
+
+**Why:** User wanted to open an app, tell the agent to play or resume, and watch/instruct on their own schedule. The existing pokemon-agent runs headlessly on a Pi — this adds a human-accessible browser interface accessible over Tailscale from any device (iPhone, Mac, etc.).
+
+**Rejected:** Electron app — the Pi lacks GPU drivers for hardware-accelerated rendering, and headless Electron via `xvfb-run` was unstable (VAAPI errors, missing X display, SIGSEGVs). Python Flask + polling is simpler and works everywhere.
+
+**Decided:** Python-first streaming (no Electron). Services: `stream.py` on :9989 and `play.py` on :5000. Binary responses from agent proxied with raw `Response()` not `jsonify()`. `socketserver.TCPServer.allow_reuse_address = True` in `stream.py` to survive quick restarts. Command queue via `queue.txt` file + `GET /api/commands/pop` endpoint.
+
+**Next:** Wait for user instructions. Say "play" or "resume" → agent picks up queued commands and acts.
+
+**Discovery:** 
+- Pi venv is at `~/pokemon-agent-venv/` not `.venv`
+- `xxd` not available on this system (used for PNG verification)
+- Agent status endpoint: `http://localhost:9876/api/status` returns `{"status": "idle" | "playing", ...}`
+- SSE endpoint for live state: `GET /api/state/stream`
+
+
+---
+
+**Skills review:** `pokemon-player` is in play. `electron-app` was attempted and failed. `python-development` is the natural home for the Flask patterns. Let me patch both.
+
+---
+
+**1. Update `pokemon-player`** — the streaming pipeline and control app are core to how this skill should work.
+**2. Add `references/streaming-pi.md`** — Electron failure on Pi/ARM64 is a high-value trap to document.
+**3. Add `references/control-app.md`** — Flask+SSE+queue pattern as a reusable reference.
+
+`electron-app` can stay as-is; it covers desktop environments where Electron works. The Pi/ARM64 constraint lives in the reference doc instead.
+[TOOL] {"success": true, "name": "pokemon-player", "description": "Play Pokemon via headless emulator + RAM reads.", "tags": ["gaming", "pokemon", "emulator", "pyboy", "gameplay", "gameboy"], "related_skills": ["electron-app", "python-development"], "content": "---\nname: pokemon-player\ndescription: \"Play Pokemon via headless emulator + RAM reads.\"\ntags: [gaming, pokemon, emulator, pyboy, gameplay, gameboy]\nrelated_skills: [electron-app, python-development]\n---\n# Pokemon Player\n\nPlay Pokemon games via headless emulation using the `pokemon-agent` package.\n\n## When to Use\n- User says \"play pokemon\", \"start pokemon\", \"pokemon game\"\n- User asks about Pokemon Red, Blue, Yellow, Green, etc.\n- User wants to watch
+
+
+---
+
+That was the old pre-systemd player instance. The current `pokemon-play` service is running properly on display `:100` with the pause feature. All good.
+
+
+---
+
+Let me check the existing skill library before updating.
+
+[TOOL] [skills_list]
+
+
+---
+
+[TOOL] [memory] action=view
+[TOOL] [skills_list]
+[TOOL] [skill_view] name=pokemon-player 2>/dev/null || echo "not found"
+[TOOL] [skill_view] name=systemd-service-creation 2>/dev/null || echo "not found"
+[TOOL] [skill_view] name=electron-xvfb 2>/dev/null || echo "not found"
+[TOOL] [skill_view] name=pygame-ui 2>/dev/null || echo "not found"
+[TOOL] [skill_view] name=streaming-server 2>/dev/null || echo "not found"
+[TOOL] [skill_view] name=raspberry-pi 2>/dev/null || echo "not found"
+[TOOL] [skill_view] name=python-http-server 2>/dev/null || echo "not found"
+[TOOL] [skill_view] name=flask-web-ui 2>/dev/null || echo "not found"
+[TOOL] [skill_view] name=network-streaming 2>/dev/null || echo "not found"
